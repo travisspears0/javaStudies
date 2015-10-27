@@ -1,12 +1,24 @@
 package first.graph;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
-public class Graph {
+public abstract class Graph {
     
-    private final List<GraphPoint> points = new ArrayList<>();
-    private final List<GraphConnection> connections = new ArrayList<>();
+    protected final List<GraphPoint> points = new ArrayList<>();
+    protected final List<GraphConnection> connections = new ArrayList<>();
+    private static final Random random = new Random();
+    
+    public abstract int getShortestPath();
+    public abstract int getShortestPath(GraphPoint start, GraphPoint end);
 
     public List<GraphPoint> getPoints() {
         List<GraphPoint> copy = new ArrayList<>(this.points);
@@ -26,16 +38,61 @@ public class Graph {
         return copy;
     }
     
-    public boolean addConnection(GraphPoint a, GraphPoint b, int value) {
-        for(int i=0 ; i<this.connections.size() ; ++i) {
-            GraphConnection con = this.connections.get(i);
-            if( con.getPointA() == a && con.getPointB() == b ||
-                con.getPointB() == a && con.getPointA() == b ) {
-                return false;
+    public void generateGraphToFile(int size, int connectionsLimit, String fileName) {
+        try {
+            PrintWriter writer = new PrintWriter(fileName,"UTF-8");
+            for( int i=0 ; i<size ; ++i ) {
+                this.addPoint(new GraphPoint());
             }
+            for( int i=0 ; i<size ; ++i ) {
+                for( int j=0, jump=connectionsLimit/size, pointTo=i ; j+jump<size ; j+=jump ) {
+                    while( pointTo == i ) {
+                        pointTo = Math.min(random.nextInt(jump)+j,size-1);
+                    }
+                    int v = random.nextInt(100)+1;
+                    writer.println(
+                        this.getPoints().get(i).getId()+","+
+                        v+","+
+                        this.getPoints().get(pointTo).getId());
+                    pointTo=i;
+                }
+            }
+            writer.close();
+        } catch(FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
-        this.connections.add(new GraphConnection(a, b, value));
-        return true;
+    }
+    
+    public void readGraphFromFile(String fileName) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(fileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream));
+            String line;
+            while((line = reader.readLine()) != null) {
+                String[] lineArr = line.split(",");
+                int a = Integer.parseInt(lineArr[0]);
+                int value = Integer.parseInt(lineArr[1]);
+                int b = Integer.parseInt(lineArr[2]);
+                this.addConnection(a, b, value);
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void addConnection(int a, int b, int value) {
+        GraphPoint pointA = this.getPointById(a);
+        GraphPoint pointB = this.getPointById(b);
+        if( pointA == null ) {
+            pointA = new GraphPoint(a);
+            this.addPoint(pointA);
+        }
+        if( pointB == null ) {
+            pointB = new GraphPoint(b);
+            this.addPoint(pointB);
+        }
+        //System.out.println("adding connection " + pointA.getId() + "-" + pointB.getId() + "["+value+"]");
+        this.connections.add(new GraphConnection(pointA, pointB, value));
     }
     
     public void updateNeighboursValues(GraphPoint point) {
@@ -44,15 +101,19 @@ public class Graph {
                 if( con.getPointB().getValue() == 0 ||
                     con.getPointA().getValue()+con.getValue() < con.getPointB().getValue() ) {
                     con.getPointB().setValue(con.getPointA().getValue()+con.getValue());
-                    System.out.println("setting value of " + con.getPointB().getId() + 
-                        " to " + (con.getPointA().getValue()+con.getValue()));
+                    con.getPointB().setPrev(con.getPointA());
+                    /*System.out.println("setting value of " + con.getPointB().getId() + 
+                        " to " + (con.getPointA().getValue()+con.getValue()) + " and prev to " + 
+                        con.getPointA().getId());*/
                 }
             } else if( con.getPointB() == point && !con.getPointA().isVisited() ) {
                 if( con.getPointA().getValue() == 0 ||
                     con.getPointB().getValue()+con.getValue() < con.getPointA().getValue() ) {
                     con.getPointA().setValue(con.getPointB().getValue()+con.getValue());
-                    System.out.println("setting value of " + con.getPointA().getId() + 
-                        " to " + (con.getPointB().getValue()+con.getValue()));
+                    con.getPointA().setPrev(con.getPointB());
+                    /*System.out.println("setting value of " + con.getPointA().getId() + 
+                        " to " + (con.getPointB().getValue()+con.getValue()) + " and prev to " + 
+                        con.getPointB().getId());*/
                 }
             }
         }
@@ -66,46 +127,19 @@ public class Graph {
         return this.points.get(this.points.size()-1);
     }
     
-    public int getShortestPath(int startId, int endId) {
-        return this.getShortestPath(this.getPointById(startId), this.getPointById(endId));
+    public String trackPath() {
+        return this.trackPath(this.getEndPoint());
     }
     
-    public int getShortestPath() {
-        return this.getShortestPath(this.getStartPoint(), this.getEndPoint());
-    }
-    
-    public int getShortestPath(GraphPoint start, GraphPoint end) {
-        List<GraphPoint> freePoints = new ArrayList<>(this.points);
-        List<GraphPoint> visitedPoints = new ArrayList<>();
-        GraphPoint currentPoint = start;
-        while( currentPoint != end ) {
-            currentPoint.setVisited(true);
-            freePoints.remove(currentPoint);
-            visitedPoints.add(currentPoint);
-            this.updateNeighboursValues(currentPoint);
-            currentPoint = this.getNextGraphPoint(freePoints);
-            System.out.println("moved to point " + currentPoint.getId());
+    public String trackPath(GraphPoint end) {
+        String result = "";
+        GraphPoint currentPoint = end;
+        while(currentPoint != null) {
+            result += "[" + currentPoint.getId() + "]<-" ;
+            currentPoint = currentPoint.getPrev();
         }
-        int result = currentPoint.getValue();
-        for( GraphPoint point : this.points ) {
-            point.setValue(0);
-            point.setVisited(false);
-        }
+        result = result.substring(0,result.length()-2);
         return result;
-    }
-    
-    private GraphPoint getNextGraphPoint(List<GraphPoint> points) {
-        GraphPoint next = null;
-        for( GraphPoint p : points ) {
-            if( next == null ) {
-                next = p;
-                continue;
-            }
-            if( p.getValue() != 0 && p.getValue() < next.getValue() ) {
-                next = p;
-            }
-        }
-        return next;
     }
     
     public GraphPoint getPointById(int id) {
@@ -115,6 +149,21 @@ public class Graph {
             }
         }
         return null;
+    }
+    
+    public void writeToFile(String fileName) {
+        try {
+            PrintWriter writer = new PrintWriter(fileName,"UTF-8");
+            for( GraphConnection con : this.connections ) {
+                writer.println(
+                    con.getPointA().getId() + "," + 
+                    con.getValue() + "," + 
+                    con.getPointB().getId());
+            }
+            writer.close();
+        } catch(FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
     
     @Override

@@ -6,6 +6,7 @@ public class GraphPoint {
     private final int id;
     private int value=0;
     private boolean visited = false;
+    private GraphPoint prev;
     
     public GraphPoint() {
         this.id = ++CURRENT_ID;
@@ -33,6 +34,14 @@ public class GraphPoint {
 
     public void setVisited(boolean visited) {
         this.visited = visited;
+    }
+
+    public GraphPoint getPrev() {
+        return prev;
+    }
+
+    public void setPrev(GraphPoint prev) {
+        this.prev = prev;
     }
     
 }
