@@ -37,6 +37,8 @@ public class ServerXml extends Server {
         try {
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             //...?
+            oos.writeObject(xmlToSend);
+            
             oos.close();
         } catch(IOException e) {
             e.printStackTrace();

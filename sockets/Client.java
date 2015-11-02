@@ -1,12 +1,17 @@
 package sockets;
 
+import com.thoughtworks.xstream.XStream;
 import graphs.Graph;
+import graphs.GraphConnection;
 import graphs.GraphDijkstraQueue;
 import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
 public class Client {
@@ -124,7 +129,17 @@ public class Client {
         int port = ServerXml.PORT;
         System.out.println("sending request to server...");
         socket = new Socket(Server.HOST, port);
+        XStream xStream = new XStream();
+        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        Object ob = ois.readObject();
+        System.out.println("got the response, parsing xml...");
+        List<GraphConnection> connections = new ArrayList<>();
+        connections = (List<GraphConnection>)xStream.fromXML(ob.toString());
+        for( GraphConnection c : connections ) {
+            resultGraph.addConnection(c.getPointA().getId(), c.getPointB().getValue(), c.getValue());
+        }
         
+        ois.close();
         System.out.println("downloaded successfully: " + resultGraph);
         return resultGraph;
     }
