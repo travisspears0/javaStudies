@@ -1,14 +1,14 @@
-package first.graph;
+package graphs;
 
 public class GraphBellmanFord extends Graph {
     
     @Override
-    public int getShortestPath() {
-        return this.getShortestPath(this.getStartPoint(),this.getEndPoint());
+    public int getRealShortestPath() {
+        return this.getRealShortestPath(this.getStartPoint(),this.getEndPoint());
     }
     
     @Override
-    public int getShortestPath(GraphPoint start, GraphPoint b) {
+    public int getRealShortestPath(GraphPoint start, GraphPoint b) {
         start.setVisited(true);
         boolean changed = true;
         while( changed ) {

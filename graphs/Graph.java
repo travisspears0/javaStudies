@@ -1,4 +1,4 @@
-package first.graph;
+package graphs;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -17,12 +17,38 @@ public abstract class Graph {
     protected final List<GraphConnection> connections = new ArrayList<>();
     private static final Random random = new Random();
     
-    public abstract int getShortestPath();
-    public abstract int getShortestPath(GraphPoint start, GraphPoint end);
+    protected abstract int getRealShortestPath();
+    protected abstract int getRealShortestPath(GraphPoint start, GraphPoint end);
 
+    public int getShortestPath() {
+        if(this.points.isEmpty()) {
+            return 0;
+        }
+        return this.getRealShortestPath();
+    }
+    
+    public boolean isEmpty() {
+        return this.points.isEmpty();
+    }
+    
+    public int getShortestPath(GraphPoint start, GraphPoint end) {
+        if(this.points.isEmpty()) {
+            return 0;
+        }
+        return this.getRealShortestPath(start, end);
+    }
+    
     public List<GraphPoint> getPoints() {
         List<GraphPoint> copy = new ArrayList<>(this.points);
         return copy;
+    }
+    
+    public void replace(Graph graph) {
+        this.points.clear();
+        this.connections.clear();
+        
+        this.points.addAll(graph.getPoints());
+        this.connections.addAll(graph.getConnections());
     }
     
     public boolean addPoint(GraphPoint point) {
@@ -44,12 +70,18 @@ public abstract class Graph {
             for( int i=0 ; i<size ; ++i ) {
                 this.addPoint(new GraphPoint());
             }
+            int connectionsPerPoint = connectionsLimit/size;
+            int boxSize = size/connectionsPerPoint;
             for( int i=0 ; i<size ; ++i ) {
-                for( int j=0, jump=connectionsLimit/size, pointTo=i ; j+jump<size ; j+=jump ) {
+                for( int j=0, pointTo=i ; j+boxSize<size ; j+=boxSize ) {
                     while( pointTo == i ) {
-                        pointTo = Math.min(random.nextInt(jump)+j,size-1);
+                        pointTo = Math.min(random.nextInt(boxSize)+j,size-1);
                     }
                     int v = random.nextInt(100)+1;
+                    this.connections.add(new GraphConnection(
+                        this.getPoints().get(i), 
+                        this.getPoints().get(pointTo), 
+                        v));
                     writer.println(
                         this.getPoints().get(i).getId()+","+
                         v+","+
@@ -63,7 +95,48 @@ public abstract class Graph {
         }
     }
     
+    public void saveGraphToFile(String fileName) {
+        try {
+            PrintWriter writer = new PrintWriter(fileName,"UTF-8");
+            for( GraphConnection conn : this.connections ) {
+                writer.println(
+                    conn.getPointA().getId()+","+
+                    conn.getValue()+","+
+                    conn.getPointB().getId());
+            }
+            writer.close();
+        } catch(FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public static Graph generateGraph(int size, int connectionsLimit) {
+        Graph resultGraph = new GraphDijkstraQueue();
+        for( int i=0 ; i<size ; ++i ) {
+            resultGraph.addPoint(new GraphPoint());
+        }
+        int connectionsPerPoint = connectionsLimit/size;
+        int boxSize = size/connectionsPerPoint;
+        for( int i=0 ; i<size ; ++i ) {
+            for( int j=0, pointTo=i ; j+boxSize<size ; j+=boxSize ) {
+                while( pointTo == i ) {
+                    pointTo = Math.min(random.nextInt(boxSize)+j,size-1);
+                }
+                int v = random.nextInt(100)+1;
+                resultGraph.connections.add(
+                    new GraphConnection(
+                        resultGraph.getPoints().get(i), 
+                        resultGraph.getPoints().get(pointTo), 
+                        v));
+                pointTo=i;
+            }
+        }
+        return resultGraph;
+    }
+    
     public void readGraphFromFile(String fileName) {
+        this.points.clear();
+        this.connections.clear();
         try {
             FileInputStream fileInputStream = new FileInputStream(fileName);
             BufferedReader reader = new BufferedReader(new InputStreamReader(fileInputStream));
@@ -128,10 +201,16 @@ public abstract class Graph {
     }
     
     public String trackPath() {
+        if(this.points.isEmpty()) {
+            return "empty";
+        }
         return this.trackPath(this.getEndPoint());
     }
     
     public String trackPath(GraphPoint end) {
+        if(this.points.isEmpty()) {
+            return "empty";
+        }
         String result = "";
         GraphPoint currentPoint = end;
         while(currentPoint != null) {
@@ -166,8 +245,7 @@ public abstract class Graph {
         }
     }
     
-    @Override
-    public String toString() {
+    public String getGraph() {
         String result = "";
         for(GraphConnection con : this.connections) {
             result +=   con.getPointA().getId() + "," + 
@@ -175,6 +253,12 @@ public abstract class Graph {
                         con.getPointB().getId() + Main.NEWLINE;
         }
         return result;
+    }
+    
+    
+    @Override
+    public String toString() {
+        return "graph, points: " + this.points.size() + ", connections: " + this.connections.size();
     }
     
 }

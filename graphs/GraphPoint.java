@@ -1,4 +1,4 @@
-package first.graph;
+package graphs;
 
 public class GraphPoint {
     

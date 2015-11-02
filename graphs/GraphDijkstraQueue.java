@@ -1,24 +1,25 @@
-package first.graph;
+package graphs;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.PriorityQueue;
 
-public class GraphDijkstra extends Graph {
+public class GraphDijkstraQueue extends Graph {
     
     @Override
-    public int getShortestPath() {
-        return this.getShortestPath(this.getStartPoint(), this.getEndPoint());
+    public int getRealShortestPath() {
+        return this.getRealShortestPath(this.getStartPoint(), this.getEndPoint());
     }
     
     @Override
-    public int getShortestPath(GraphPoint start, GraphPoint end) {
+    public int getRealShortestPath(GraphPoint start, GraphPoint end) {
         for( GraphPoint point : this.points ) {
             point.setValue(0);
             point.setVisited(false);
         }
         try {
-            List<GraphPoint> freePoints = new ArrayList<>(this.points);
-            List<GraphPoint> visitedPoints = new ArrayList<>();
+            GraphPointComaparator comparator = new GraphPointComaparator();
+            PriorityQueue<GraphPoint> freePoints = new PriorityQueue<>(comparator);
+            freePoints.addAll(this.points);
+            PriorityQueue<GraphPoint> visitedPoints = new PriorityQueue<>(comparator);
             GraphPoint currentPoint = start;
             while( currentPoint != end ) {
                 currentPoint.setVisited(true);
@@ -35,7 +36,7 @@ public class GraphDijkstra extends Graph {
         }
     }
     
-    private GraphPoint getNextGraphPoint(List<GraphPoint> points) {
+    private GraphPoint getNextGraphPoint(PriorityQueue<GraphPoint> points) {
         GraphPoint next = null;
         for( GraphPoint p : points ) {
             if( next == null ) {

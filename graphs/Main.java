@@ -1,4 +1,6 @@
-package first.graph;
+package graphs;
+
+import static sockets.Server.random;
 
 public class Main {
     
@@ -7,10 +9,14 @@ public class Main {
     public static void main(String args[]) {
         
         final String fileName = "graph.txt" ;
-        new GraphDijkstra().generateGraphToFile(2000, 500000, fileName);
+        Graph graph = new GraphDijkstraList();
+        graph.generateGraphToFile(random.nextInt(800)+1200, random.nextInt(400000)+100000, fileName);
         
-        System.out.println("Dijkstra:");
-        Main.testGraph(fileName, new GraphDijkstra());
+        System.out.println(graph);
+        System.out.println("Dijkstra on list:");
+        Main.testGraph(fileName, new GraphDijkstraList());
+        System.out.println("Dijkstra on queue:");
+        Main.testGraph(fileName, new GraphDijkstraQueue());
         System.out.println("Bellman-Ford:");
         Main.testGraph(fileName, new GraphBellmanFord());
         
