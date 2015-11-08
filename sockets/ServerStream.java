@@ -10,6 +10,7 @@ public class ServerStream extends Server {
     
     public static final int PORT = 29000;
     private static ServerStream serverInstance;
+    private SerializableGraph serializableGraph = new SerializableGraph();
     
     private ServerStream() {
         try {
@@ -34,14 +35,16 @@ public class ServerStream extends Server {
     public void sendGraphToSocket(Socket socket) {
         try {
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            int i=0;
-            for(GraphConnection con : this.graph.getConnections()) {
+            //int i=0;
+            /*for(GraphConnection con : this.graph.getConnections()) {
                 String s =  con.getPointA().getId() + "," + 
                             con.getValue() + "," + 
                             con.getPointB().getId();
                 oos.writeObject(s);
                 //System.out.println("sent: " + (++i) + "/" + this.connections.size());
-            }
+            }*/
+            this.serializableGraph.encode(this.graph);
+            oos.writeObject(this.serializableGraph);
             oos.close();
         } catch(IOException e) {
             e.printStackTrace();

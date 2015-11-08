@@ -11,7 +11,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.Scanner;
 
 public class Client {
@@ -20,7 +19,7 @@ public class Client {
         
         int option = -1;
         Scanner scanner = new Scanner(System.in);
-        Graph graph = new GraphNetwork();
+        Graph graph = new GraphDijkstraQueue();
         while(option!=0) {
             System.out.println("------------------------------");
             System.out.println("    what you want to do:");
@@ -33,6 +32,9 @@ public class Client {
             System.out.println("------------------------------");
             option = scanner.nextInt();
             switch(option) {
+                case 0: {
+                    break;
+                }
                 case 1: {
                     try {
                         Graph g = getGraphFromServerXml();
@@ -95,19 +97,7 @@ public class Client {
         try {
             socket = new Socket(Server.HOST, port);
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            while(true) {
-                //System.out.println("received " + line);
-                try {
-                    ob = ois.readObject();
-                } catch(EOFException e) {
-                    break;
-                }
-                String[] lineArr = ob.toString().split(",");
-                int a = Integer.parseInt(lineArr[0]);
-                int v = Integer.parseInt(lineArr[1]);
-                int b = Integer.parseInt(lineArr[2]);
-                resultGraph.addConnection(a,v,b);
-            }
+            resultGraph = ((SerializableGraph)ois.readObject()).decode();
             ois.close();
         } catch(UnknownHostException uhe) {
             System.err.println("could not connect to "+Server.HOST+" on port "+port+", no such host");
@@ -130,11 +120,10 @@ public class Client {
         System.out.println("sending request to server...");
         socket = new Socket(Server.HOST, port);
         XStream xStream = new XStream();
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-        Object ob = ois.readObject();
+        ObjectInputStream ois = xStream.createObjectInputStream(socket.getInputStream());
+        List<GraphConnection> connections = 
+            (List<GraphConnection>)xStream.fromXML(ois.readObject().toString());
         System.out.println("got the response, parsing xml...");
-        List<GraphConnection> connections = new ArrayList<>();
-        connections = (List<GraphConnection>)xStream.fromXML(ob.toString());
         for( GraphConnection c : connections ) {
             resultGraph.addConnection(c.getPointA().getId(), c.getPointB().getValue(), c.getValue());
         }

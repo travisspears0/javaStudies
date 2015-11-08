@@ -1,6 +1,7 @@
 package sockets;
 
 import graphs.Graph;
+import graphs.GraphDijkstraQueue;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -14,7 +15,9 @@ public abstract class Server implements Runnable {
     //public static final int PORT = 9090;
     
     protected ServerSocket serverSocket;
-    protected final GraphNetwork graph = new GraphNetwork();
+    protected final Graph graph = new GraphDijkstraQueue();
+    
+    public abstract void sendGraphToSocket(Socket socket);
     
     protected void receiveSocketAndSendResponse() throws IOException {
         System.out.println("    waiting for incoming connection...");
@@ -48,7 +51,6 @@ public abstract class Server implements Runnable {
         this.shutDownServer();
         System.out.println("goodbye");
     }
-    public abstract void sendGraphToSocket(Socket socket);
 
     @Override
     public void run() {
