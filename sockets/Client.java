@@ -4,12 +4,10 @@ import com.thoughtworks.xstream.XStream;
 import graphs.Graph;
 import graphs.GraphConnection;
 import graphs.GraphDijkstraQueue;
-import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
@@ -110,9 +108,6 @@ public class Client {
         return resultGraph;
     }
     
-    
-    
-    
     public static Graph getGraphFromServerXml() throws Exception {
         Graph resultGraph = new GraphDijkstraQueue();
         Socket socket = null;
@@ -127,7 +122,6 @@ public class Client {
         for( GraphConnection c : connections ) {
             resultGraph.addConnection(c.getPointA().getId(), c.getPointB().getValue(), c.getValue());
         }
-        
         ois.close();
         System.out.println("downloaded successfully: " + resultGraph);
         return resultGraph;

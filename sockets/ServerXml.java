@@ -2,7 +2,6 @@ package sockets;
 
 import com.thoughtworks.xstream.XStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.ObjectOutputStream;
@@ -36,8 +35,6 @@ public class ServerXml extends Server {
         XStream xStream = new XStream();
         String xmlToSend = xStream.toXML(this.graph.getConnections());
         try {
-            //ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            //oos.writeObject(xmlToSend);
             ObjectOutputStream oos = xStream.createObjectOutputStream(socket.getOutputStream());
             oos.writeObject(xmlToSend);
             oos.close();

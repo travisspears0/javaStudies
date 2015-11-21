@@ -1,6 +1,5 @@
 package sockets;
 
-import graphs.GraphConnection;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -35,14 +34,6 @@ public class ServerStream extends Server {
     public void sendGraphToSocket(Socket socket) {
         try {
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            //int i=0;
-            /*for(GraphConnection con : this.graph.getConnections()) {
-                String s =  con.getPointA().getId() + "," + 
-                            con.getValue() + "," + 
-                            con.getPointB().getId();
-                oos.writeObject(s);
-                //System.out.println("sent: " + (++i) + "/" + this.connections.size());
-            }*/
             this.serializableGraph.encode(this.graph);
             oos.writeObject(this.serializableGraph);
             oos.close();
