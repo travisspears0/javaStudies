@@ -1,8 +1,0 @@
-rozdzialy 11 i 15
-skip lists - struktura alternatywna dla drzew
-    NavigableMap
-samodziena implementacja skip list
-
-losowo 500 000 liczb z duzego zakresu
-wstawiane do struktury skip list
-klucze nie moga sie powtarzac, wiec lepiej wygenerowac tablice i losowa ja pomieszac
