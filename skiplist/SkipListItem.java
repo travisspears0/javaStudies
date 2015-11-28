@@ -17,6 +17,11 @@ public class SkipListItem<K,V> implements Comparable<K> {
         this.key = key;
     }
     
+    public SkipListItem() {
+        this.key = null;
+        this.value = null;
+    }
+    
     @Override
     public String toString() {
         return "[" + this.key +"]" ;

@@ -7,13 +7,10 @@ public class Main {
     public static final Random random = new Random();
     public static boolean testing = false;
     public static long testTime = 0;
+    public static final int size = 100000;
     
     public static void main(String[] args) {
         
-        int size = 100000;
-        int maxHeight = 50;
-        
-        size = Math.max(2, size);
         Integer[] keys = new Integer[size];
         for(int i=0 ; i<size ; ++i) {
             keys[i] = i+1;
@@ -28,7 +25,7 @@ public class Main {
             keys[i] -= keys[j];
         }
         
-        SkipList<Integer,Integer> skipList = new SkipList<>(maxHeight);
+        SkipList<Integer,Integer> skipList = new SkipList<>();
         
         testPut(skipList, keys);
         testContainsKey(skipList, size);
