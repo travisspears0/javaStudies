@@ -1,6 +1,7 @@
 package skiplist;
 
 import java.util.Random;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 public class Main {
     
@@ -30,8 +31,36 @@ public class Main {
         testContainsKey(skipList, size);
         testGet(skipList, size);
         testRemove(skipList);
-        skipList.print();
+        //skipList.print();
         
+        
+        
+        System.out.println("[ConcurrentSkipListMap]");
+        ConcurrentSkipListMap<Integer,Integer> cslm = new ConcurrentSkipListMap<>();
+        testStart();
+        for(int i=0 ; i<keys.length ; ++i) {
+            cslm.put(keys[i], random.nextInt(100));
+        }
+        System.out.println("PUT method time elsapsed: "+testEnd());
+        //
+        testStart();
+        for(int i=0 ; i<size ; ++i) {
+            boolean b = cslm.containsKey(i+1);
+        }
+        System.out.println("CONTAINS KEY method time elsapsed: " + testEnd());
+        //
+        testStart();
+        for(int i=0 ; i<size ; ++i) {
+            Integer it = (Integer)cslm.get(i);
+        }
+        System.out.println("GET method time elsapsed: " + testEnd());
+        //
+        testStart();
+        for(int i=0 ; i<size ; ++i) {
+            cslm.remove(i+1);
+        }
+        System.out.println("REMOVE method time elsapsed: " + testEnd());
+        //
     }
     
     public static void testPut(SkipList skipList, Object[] items) {
