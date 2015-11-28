@@ -26,7 +26,6 @@ public class Main {
         }
         
         SkipList<Integer,Integer> skipList = new SkipList<>();
-        
         testPut(skipList, keys);
         testContainsKey(skipList, size);
         testGet(skipList, size);
@@ -62,8 +61,8 @@ public class Main {
     
     public static void testRemove(SkipList skipList) {
         testStart();
-        while(!skipList.isEmpty()) {
-            skipList.remove(0);
+        for(int i=0 ; i<size ; ++i) {
+            skipList.remove(i+1);
         }
         System.out.println("REMOVE method time elsapsed: " + testEnd());
     }
