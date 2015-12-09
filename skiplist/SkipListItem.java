@@ -8,7 +8,7 @@ public class SkipListItem<K,V> implements Comparable<K> {
         previous,
         next;
     private final K key;
-    private final V value;
+    private V value;
     private static int CURRENT_ID = 0;
     private final int id = ++CURRENT_ID;
 
@@ -17,9 +17,14 @@ public class SkipListItem<K,V> implements Comparable<K> {
         this.key = key;
     }
     
+    public SkipListItem() {
+        this.key = null;
+        this.value = null;
+    }
+    
     @Override
     public String toString() {
-        return "[" + this.key +"]" ;
+        return "[" + this.key + "]" ;
     }
     
     public int getId() {
@@ -69,6 +74,10 @@ public class SkipListItem<K,V> implements Comparable<K> {
 
     public V getValue() {
         return value;
+    }
+
+    public void setValue(V value) {
+        this.value = value;
     }
     
 }
