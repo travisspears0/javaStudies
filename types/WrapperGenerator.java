@@ -1,6 +1,6 @@
 package types;
 
-import com.sun.codemodel.JBlock;
+import com.sun.codemodel.JAssignmentTarget;
 import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
@@ -11,12 +11,15 @@ import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
+import com.sun.codemodel.JType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class WrapperGenerator {
     
@@ -25,15 +28,24 @@ public class WrapperGenerator {
             IllegalAccessException, InvocationTargetException, ClassNotFoundException,
             InstantiationException, NoSuchMethodException, JClassAlreadyExistsException {
         
+        
+        // classinitialization
         String className = wrappedClass.getSimpleName()+"Wrapper";
-        JCodeModel jcm = new JCodeModel();
-        JDefinedClass wrapperClass = jcm._class(className);
+        JCodeModel model = new JCodeModel();
+        JDefinedClass wrapperClass = model._class(className);
+        JClass jWrappedClass = model.directClass(wrappedClass.getName());
+        
+        //fields
         JFieldVar wrappedObjectReference = wrapperClass.field(
                 JMod.PRIVATE|JMod.FINAL, wrappedClass, "wrappedReference");
-        JExpr._new(jcm.ref(wrappedClass));
-        Constructor[] constructors = wrappedClass.getConstructors();
-        JClass jWrappedClass = jcm.directClass(wrappedClass.getName());
+        JFieldVar loggerReference = wrapperClass.field(
+                JMod.PRIVATE|JMod.FINAL, Logger.class, "logger");
+        JFieldVar testTimeReference = wrapperClass.field(
+                JMod.PRIVATE, Long.TYPE, "testTime");
         
+        
+        //constructors
+        Constructor[] constructors = wrappedClass.getConstructors();
         for(Constructor constructor : constructors) {
             JMethod constructorCreated = wrapperClass.constructor(constructor.getModifiers());
             JInvocation initializeExpression = JExpr._new(jWrappedClass);
@@ -45,14 +57,44 @@ public class WrapperGenerator {
             constructorCreated.body().assign(
                     wrappedObjectReference,
                     initializeExpression);
+            constructorCreated.body().assign(
+                    loggerReference,
+                    model.directClass(Logger.class.getName()).staticInvoke("getLogger")
+                            .arg(className+"Logger"));
         }
         
+        //useful references
+        JInvocation nanoTimeReference = 
+                model.directClass(System.class.getName()).staticInvoke("nanoTime");
+        JClass longReference = model.directClass(Long.class.getName());
+        //private methods with logging time
+        JMethod timerStartMethod = wrapperClass.method(
+                JMod.PRIVATE, 
+                Void.TYPE,
+                "timerStart");
+        timerStartMethod.body().assign(testTimeReference,nanoTimeReference);
+        
+        JMethod timerStopMethod = wrapperClass.method(
+                JMod.PRIVATE, 
+                Void.TYPE,
+                "timerStop");
+        JExpression countingExpression = JExpr.ref(testTimeReference.name())
+                .mul(JExpr.lit(-1))
+                .plus(nanoTimeReference)
+                .div(JExpr.lit(1000000))
+                .plus(JExpr.lit(""));
+        timerStopMethod.body().add(loggerReference.invoke("log")
+                .arg(model.directClass(Level.class.getName()).staticRef("INFO"))
+                .arg(countingExpression));
+        
+        //methods
         Method[] methods = wrappedClass.getDeclaredMethods();
         for(Method method : methods) {
             JMethod methodCreated = wrapperClass.method(
                     method.getModifiers(), 
                     method.getReturnType(),
                     method.getName());
+            methodCreated.body().invoke(timerStartMethod);
             JInvocation callbackExpression = wrappedObjectReference.invoke(method.getName());
             for(int i=0,size=method.getParameters().length ; i<size ; ++i) {
                 Parameter param = method.getParameters()[i];
@@ -62,13 +104,23 @@ public class WrapperGenerator {
             if(     method.getReturnType().toString().equals("void") || 
                     method.getReturnType().toString().equals("Void")) {
                 methodCreated.body().add(callbackExpression);
+                methodCreated.body().invoke(timerStopMethod);
             } else {
-                methodCreated.body()._return(callbackExpression);
+                JAssignmentTarget jat = methodCreated.body().decl(JType.parse(model, method.getReturnType().getName()), "res");
+                methodCreated.body().assign(jat, callbackExpression);
+                methodCreated.body().invoke(timerStopMethod);
+                methodCreated.body()._return(jat);
             }
         }
+        
+        /*timerStopMethod.body()._return(
+                longReference.staticInvoke("sum")
+                        .arg(nanoTimeReference)
+                        .arg(longReference.staticInvoke("")));*/
+        //saving file
         File file = new File("./src/types/");
         file.mkdirs();
-        jcm.build(file);
+        model.build(file);
         
         
     }
