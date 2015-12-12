@@ -15,18 +15,18 @@ import com.sun.codemodel.JType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WrapperGenerator {
     
-    public static void generateWrapper(Class wrappedClass)
-            throws NoClassDefFoundError, IOException,
-            IllegalAccessException, InvocationTargetException, ClassNotFoundException,
-            InstantiationException, NoSuchMethodException, JClassAlreadyExistsException {
+    public static Class generateWrapper(Class wrappedClass) throws 
+            JClassAlreadyExistsException, IOException {
         
         
         // classinitialization
@@ -43,10 +43,12 @@ public class WrapperGenerator {
         JFieldVar testTimeReference = wrapperClass.field(
                 JMod.PRIVATE, Long.TYPE, "testTime");
         
-        
         //constructors
         Constructor[] constructors = wrappedClass.getConstructors();
         for(Constructor constructor : constructors) {
+            if(constructor.getModifiers() == JMod.PRIVATE) {
+                continue;
+            }
             JMethod constructorCreated = wrapperClass.constructor(constructor.getModifiers());
             JInvocation initializeExpression = JExpr._new(jWrappedClass);
             for(int i=0,size=constructor.getParameters().length ; i<size ; ++i) {
@@ -90,6 +92,11 @@ public class WrapperGenerator {
         //methods
         Method[] methods = wrappedClass.getDeclaredMethods();
         for(Method method : methods) {
+            if(Modifier.toString(method.getModifiers()).contains("private") ||
+                    Modifier.toString(method.getModifiers()).contains("static")) {
+                continue;
+            }
+            Map<String, JType> genericTypes = new HashMap();
             JMethod methodCreated = wrapperClass.method(
                     method.getModifiers(), 
                     method.getReturnType(),
@@ -98,7 +105,16 @@ public class WrapperGenerator {
             JInvocation callbackExpression = wrappedObjectReference.invoke(method.getName());
             for(int i=0,size=method.getParameters().length ; i<size ; ++i) {
                 Parameter param = method.getParameters()[i];
-                methodCreated.param(0, param.getType(), "arg" + (i));
+                JType paramType;
+                if(param.getType() == Object.class) {
+                    String letter = param.getParameterizedType().toString();
+                    if(genericTypes.get(letter)==null) {
+                        genericTypes.put(letter, methodCreated.generify(letter));
+                    }
+                    methodCreated.param(0, genericTypes.get(letter), "arg" + (i));
+                } else {
+                    methodCreated.param(0, param.getType(), "arg" + (i));
+                }
                 callbackExpression.arg(JExpr.ref("arg"+i));
             }
             if(     method.getReturnType().toString().equals("void") || 
@@ -106,23 +122,32 @@ public class WrapperGenerator {
                 methodCreated.body().add(callbackExpression);
                 methodCreated.body().invoke(timerStopMethod);
             } else {
-                JAssignmentTarget jat = methodCreated.body().decl(JType.parse(model, method.getReturnType().getName()), "res");
-                methodCreated.body().assign(jat, callbackExpression);
+                JAssignmentTarget returnVariable;
+                if(method.getReturnType() == Object.class) {//returns generic
+                    String letter = method.getGenericReturnType().getTypeName();
+                    if(genericTypes.get(letter)==null) {
+                        genericTypes.put(letter, methodCreated.generify(letter));
+                    }
+                    methodCreated.type(genericTypes.get(letter));
+                    returnVariable = methodCreated.body().decl(genericTypes.get(letter), "res");
+                    methodCreated.body().assign(
+                            returnVariable, 
+                            JExpr.cast(genericTypes.get(letter), callbackExpression));
+                } else {
+                    returnVariable = methodCreated.body().decl(
+                        JType.parse(model, method.getReturnType().getName()), "res");
+                    methodCreated.body().assign(returnVariable, callbackExpression);
+                }
                 methodCreated.body().invoke(timerStopMethod);
-                methodCreated.body()._return(jat);
+                methodCreated.body()._return(returnVariable);
             }
         }
-        
-        /*timerStopMethod.body()._return(
-                longReference.staticInvoke("sum")
-                        .arg(nanoTimeReference)
-                        .arg(longReference.staticInvoke("")));*/
         //saving file
         File file = new File("./src/types/");
         file.mkdirs();
         model.build(file);
-        
-        
+        System.out.println(model.directClass(className));
+        return null;
     }
     
 }
