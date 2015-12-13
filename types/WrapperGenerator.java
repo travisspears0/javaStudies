@@ -11,6 +11,7 @@ import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JInvocation;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
+import com.sun.codemodel.JPackage;
 import com.sun.codemodel.JType;
 import java.io.File;
 import java.io.IOException;
@@ -25,15 +26,17 @@ import java.util.logging.Logger;
 
 public class WrapperGenerator {
     
-    public static Class generateWrapper(Class wrappedClass) throws 
-            JClassAlreadyExistsException, IOException {
+    public static String generateWrapper(Class wrappedClass) throws 
+            JClassAlreadyExistsException, IOException, ClassNotFoundException {
         
         
         // classinitialization
         String className = wrappedClass.getSimpleName()+"Wrapper";
         JCodeModel model = new JCodeModel();
-        JDefinedClass wrapperClass = model._class(className);
+        JPackage jPackage = model._package(WrapperGenerator.class.getPackage().getName());
+        JDefinedClass wrapperClass = jPackage._class(className);
         JClass jWrappedClass = model.directClass(wrappedClass.getName());
+        
         
         //fields
         JFieldVar wrappedObjectReference = wrapperClass.field(
@@ -143,11 +146,10 @@ public class WrapperGenerator {
             }
         }
         //saving file
-        File file = new File("./src/types/");
+        File file = new File("./src/");
         file.mkdirs();
         model.build(file);
-        System.out.println(model.directClass(className));
-        return null;
+        return className;
     }
     
 }

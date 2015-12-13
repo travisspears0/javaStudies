@@ -5,7 +5,10 @@ public class Main {
     public static void main(String[] args) {
         
         try {
-            WrapperGenerator.generateWrapper(skiplist.SkipList.class);
+            String s = WrapperGenerator.generateWrapper(skiplist.SkipList.class);
+            SkipListWrapper slw = new SkipListWrapper();
+            slw.put(5,6);
+            slw.print();
         } catch(Exception e) {
             e.printStackTrace();
         }
