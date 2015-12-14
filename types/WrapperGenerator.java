@@ -21,8 +21,11 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.FileHandler;
+import java.util.logging.SimpleFormatter;
 
 public class WrapperGenerator {
     
@@ -45,6 +48,8 @@ public class WrapperGenerator {
                 JMod.PRIVATE|JMod.FINAL, Logger.class, "logger");
         JFieldVar testTimeReference = wrapperClass.field(
                 JMod.PRIVATE, Long.TYPE, "testTime");
+        JFieldVar fileHandlerReference = wrapperClass.field(
+                JMod.PRIVATE, Handler.class, "fileHandler");
         
         //constructors
         Constructor[] constructors = wrappedClass.getConstructors();
@@ -66,6 +71,14 @@ public class WrapperGenerator {
                     loggerReference,
                     model.directClass(Logger.class.getName()).staticInvoke("getLogger")
                             .arg(className+"Logger"));
+            constructorCreated.body().assign(fileHandlerReference, 
+                    JExpr._new(model.directClass(FileHandler.class.getName()))
+                            .arg("./logs.txt"));
+            constructorCreated.body().invoke(fileHandlerReference,"setFormatter")
+                    .arg(JExpr._new(model.directClass(SimpleFormatter.class.getName())));
+            constructorCreated._throws(IOException.class);
+            constructorCreated.body().invoke(loggerReference,"addHandler").arg(
+                    JExpr.ref("fileHandler"));
         }
         
         //useful references
@@ -86,11 +99,11 @@ public class WrapperGenerator {
         JExpression countingExpression = JExpr.ref(testTimeReference.name())
                 .mul(JExpr.lit(-1))
                 .plus(nanoTimeReference)
-                .div(JExpr.lit(1000000))
-                .plus(JExpr.lit(""));
+                .div(JExpr.lit(1000000));
+        timerStopMethod.param(String.class, "methodName");
         timerStopMethod.body().add(loggerReference.invoke("log")
                 .arg(model.directClass(Level.class.getName()).staticRef("INFO"))
-                .arg(countingExpression));
+                .arg(JExpr.ref("methodName").plus(JExpr.lit(": ")).plus(countingExpression)));
         
         //methods
         Method[] methods = wrappedClass.getDeclaredMethods();
@@ -123,7 +136,7 @@ public class WrapperGenerator {
             if(     method.getReturnType().toString().equals("void") || 
                     method.getReturnType().toString().equals("Void")) {
                 methodCreated.body().add(callbackExpression);
-                methodCreated.body().invoke(timerStopMethod);
+                methodCreated.body().invoke(timerStopMethod).arg(method.getName());
             } else {
                 JAssignmentTarget returnVariable;
                 if(method.getReturnType() == Object.class) {//returns generic
@@ -141,7 +154,7 @@ public class WrapperGenerator {
                         JType.parse(model, method.getReturnType().getName()), "res");
                     methodCreated.body().assign(returnVariable, callbackExpression);
                 }
-                methodCreated.body().invoke(timerStopMethod);
+                methodCreated.body().invoke(timerStopMethod).arg(method.getName());
                 methodCreated.body()._return(returnVariable);
             }
         }
