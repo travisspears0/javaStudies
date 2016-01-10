@@ -8,7 +8,7 @@ public class Main {
         
         try {
             WrapperGenerator.generateWrapper(skiplist.SkipList.class);
-            /*SkipListWrapper skipList = new SkipListWrapper();
+            SkipListWrapper skipList = new SkipListWrapper();
             int size=100;
             Integer[] keys = new Integer[size];
             for(int i=0 ; i<size ; ++i) {
@@ -27,7 +27,7 @@ public class Main {
                 skipList.put(keys[i], random.nextInt(100));
             }
             skipList.print();
-            */
+            
         } catch(Exception e) {
             e.printStackTrace();
         }
